@@ -1,16 +1,15 @@
 package org.atovk.agent;
 
-import jdk.nashorn.internal.runtime.logging.Logger;
 import net.bytebuddy.agent.builder.AgentBuilder;
-import net.bytebuddy.description.annotation.AnnotationDescription;
-import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.utility.JavaModule;
+import org.springframework.web.bind.annotation.*;
 
 import java.lang.instrument.Instrumentation;
+
 
 public class PreMainAgent {
 
@@ -33,26 +32,74 @@ public class PreMainAgent {
         //创建一个转换器，转换器可以修改类的实现
         //ByteBuddy对java agent提供了转换器的实现，直接使用即可
         AgentBuilder.Transformer transformer = new AgentBuilder.Transformer() {
+            @Override
             public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder,
                                                     TypeDescription typeDescription,
                                                     ClassLoader classLoader, JavaModule javaModule) {
+
                 return builder
                         // 拦截任意方法
-                        .method(ElementMatchers.<MethodDescription>any())
+                        .method(ElementMatchers.any()
+                                // 需要从配置文件加载
+                                .and(ElementMatchers.isAnnotatedWith(RequestMapping.class)
+                                        .or(ElementMatchers.isAnnotatedWith(GetMapping.class))
+                                        .or(ElementMatchers.isAnnotatedWith(PostMapping.class))
+                                        .or(ElementMatchers.isAnnotatedWith(PutMapping.class))
+                                        .or(ElementMatchers.isAnnotatedWith(PatchMapping.class))
+                                        .or(ElementMatchers.isAnnotatedWith(DeleteMapping.class))
+                                )
+                        )
                         // 拦截到的方法委托给TimeInterceptor
-                        .intercept(MethodDelegation.to(MyInterceptor.class))
-
-
-                        ;
+                        .intercept(MethodDelegation.to(MyInterceptor.class));
             }
         };
+
+
+        AgentBuilder.Listener listener = new AgentBuilder.Listener() {
+            @Override
+            public void onDiscovery(String typeName, ClassLoader classLoader,
+                                    JavaModule module, boolean loaded) {
+                //System.out.println("onDiscovery");
+            }
+
+            @Override
+            public void onTransformation(TypeDescription typeDescription, ClassLoader classLoader,
+                                         JavaModule module, boolean loaded, DynamicType dynamicType) {
+                //System.out.println("onDiscovery");
+            }
+
+            @Override
+            public void onIgnored(TypeDescription typeDescription, ClassLoader classLoader,
+                                  JavaModule module, boolean loaded) {
+                //System.out.println("onIgnored");
+            }
+
+            @Override
+            public void onError(String typeName, ClassLoader classLoader,
+                                JavaModule module, boolean loaded, Throwable throwable) {
+                //System.out.println("onError");
+            }
+
+            @Override
+            public void onComplete(String typeName, ClassLoader classLoader,
+                                   JavaModule module, boolean loaded) {
+                //System.out.println("onComplete");
+            }
+        };
+
+
         new AgentBuilder // Byte Buddy专门有个AgentBuilder来处理Java Agent的场景
                 .Default()
+
                 // 根据包名前缀拦截类
-                .type(ElementMatchers.nameStartsWith("org.atovk.one"))
+                .type(ElementMatchers.nameStartsWith("org.atovk.web.controller")
+                        .or(ElementMatchers.nameStartsWith("org.atovk.web.controller"))
+                )
                 // 拦截到的类由transformer处理
                 .transform(transformer)
+                .with(listener)
                 .installOn(inst);
+
     }
 
     /**
@@ -76,4 +123,6 @@ public class PreMainAgent {
     public static void agentmain(String agentArgs, Instrumentation inst) {
         System.out.println("attach agentmain");
     }
+
+
 }

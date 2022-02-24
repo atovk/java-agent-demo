@@ -1,22 +1,10 @@
-## javaagent 审计
+package org.atovk.utils;
 
-javaagent + spring AOP
+import javax.servlet.http.HttpServletRequest;
 
-通过 javaagent 织入 spring AOP，操作前， 操作中， 操作后几个节点
-
-ip 获取通过注入 httpContextHolder 获取请求对象， 
-
-**获取ip信息**
-
-```java
-
-class Agent {
-
-    HttpServletRequest req = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-    String remoteAddr = req.getRemoteAddr();
+public class HttpUtil {
 
     /**
-     * 反向代理获取真实用户IP地址
      * @param request
      * @return
      */
@@ -41,15 +29,4 @@ class Agent {
     }
 }
 
-```
 
-
-**用户请求头信息获取**
-class Agent {
-
-    HttpServletRequest req = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-    String remoteAddr = req.getRemoteAddr();
-
-}
-
-```
